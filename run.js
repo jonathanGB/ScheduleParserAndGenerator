@@ -7,11 +7,37 @@ const _ = require('lodash');
 const chalk = require('chalk');
 const _gCalendar = require('./eventsToGCalendar');
 
+const SCHOOL_NAMES = [ 'UOTTAWA', 'POLYTECHNIQUE' ];
+var scheduleCrawlers = [];
+var chosenSchool = null;
 
-printTitle('UOTTAWA'); // change for different school
+askSchoolSelection();
 
-_gCalendar.start(uOttawaScheduleCrawler);
-
+function askSchoolSelection() {
+    console.log('Choose one of the currently supported schools');
+    console.log('[0] University of Ottawa');
+    console.log('[1] École Polytechnique de Montréal');
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'selectedSchool',
+            message: 'Selected School: ',
+            validate: function(input) {
+                var inputValidation = true;
+                if (isNaN(input)) {
+                    inputValidation = 'Input given is not a number';
+                } else if (input >= SCHOOL_NAMES.length) {
+                    inputValidation = 'Input given is not an option';
+                }
+                return inputValidation;
+            }
+        }
+    ]).then(function (answer) {
+        chosenSchool = answer.selectedSchool;
+        printTitle(SCHOOL_NAMES[chosenSchool]);
+        _gCalendar.start(scheduleCrawlers[chosenSchool]);
+    });
+}
 
 /* FUNCTIONS */
 function printTitle(schoolName) {
@@ -37,7 +63,7 @@ function printTitle(schoolName) {
 	}
 }
 
-function uOttawaScheduleCrawler(gAuth) {
+scheduleCrawlers[0] = function uOttawaScheduleCrawler(gAuth) {
 	console.log("GRABBING THE FORM ID");
 
 	request({
@@ -146,7 +172,6 @@ function uOttawaScheduleCrawler(gAuth) {
 		 	});
 		});
 	});
-
 
 	function getFormId(landingPage) {
 		var $ = cheerio.load(landingPage);
@@ -331,4 +356,8 @@ function uOttawaScheduleCrawler(gAuth) {
 	Number.prototype.mod = function(n) {
 		return ((this%n)+n)%n;
 	};
+}
+
+scheduleCrawlers[1] = function polyScheduleCrawler() {
+    console.log("GRABBING THE FORM ID");
 }
