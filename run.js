@@ -7,35 +7,26 @@ const _ = require('lodash');
 const chalk = require('chalk');
 const _gCalendar = require('./eventsToGCalendar');
 
-const SCHOOL_NAMES = [ 'UOTTAWA', 'POLYTECHNIQUE' ];
+const SCHOOL_NAMES = ['UOTTAWA', 'POLYTECHNIQUE'];
+const SCHOOL_CHOICES = ['University of Ottawa',
+                        'École Polytechnique de Montréal'];
 var scheduleCrawlers = [];
-var chosenSchool = null;
 
 askSchoolSelection();
 
 function askSchoolSelection() {
-    console.log('Choose one of the currently supported schools');
-    console.log('[0] University of Ottawa');
-    console.log('[1] École Polytechnique de Montréal');
     inquirer.prompt([
         {
-            type: 'input',
-            name: 'selectedSchool',
-            message: 'Selected School: ',
-            validate: function(input) {
-                var inputValidation = true;
-                if (isNaN(input)) {
-                    inputValidation = 'Input given is not a number';
-                } else if (input >= SCHOOL_NAMES.length) {
-                    inputValidation = 'Input given is not an option';
-                }
-                return inputValidation;
-            }
+            type: 'list',
+            name: 'chosenSchool',
+            message: 'Select one of the supported schools:',
+			choices: SCHOOL_CHOICES
         }
     ]).then(function (answer) {
-        chosenSchool = answer.selectedSchool;
-        printTitle(SCHOOL_NAMES[chosenSchool]);
-        _gCalendar.start(scheduleCrawlers[chosenSchool]);
+        var schoolChoice = SCHOOL_CHOICES.indexOf(answer.chosenSchool);
+        console.log('hello');
+        printTitle(SCHOOL_NAMES[schoolChoice]);
+        _gCalendar.start(scheduleCrawlers[schoolChoice]);
     });
 }
 
@@ -62,6 +53,60 @@ function printTitle(schoolName) {
 		return line + '*';
 	}
 }
+
+scheduleCrawlers[1] = function polyScheduleCrawler() {
+    console.log("GRABBING THE FORM ID");
+
+    askPolyCredentials(function(creds){
+        request({
+            method: 'post',
+            url: 'https://dossieretudiant.polymtl.ca/WebEtudiant7/ValidationServlet',
+            jar: true,
+            form: {
+                code: creds.username,
+                nip: creds.password,
+                naissance: creds.birthdate
+            }
+        }, function (err, res, body) {
+            if (err) throw new Error(err);
+
+            request({
+                method: 'post',
+                url: 'https://dossieretudiant.polymtl.ca/WebEtudiant7/PresentationHorairePersServlet',
+                jar: true,
+                form: {
+                    matricule: '1733229',
+                    trimestreProp: '20162',
+                    trimestreModif: '20162',
+                    nbreProg: '1'
+                }
+            }, function (err, res, body) {
+                if (err) throw new Error(err);
+                console.log(body);
+            });
+        });
+    });
+
+    function askPolyCredentials(callback) {
+        inquirer.prompt([
+            {
+                type: 'input',
+                name: 'username',
+                message: 'Username: ',
+            },
+            {
+                type: 'password',
+                name: 'password',
+                message: 'Password: '
+            },
+            {
+                type: 'input',
+                name: 'birthdate',
+                message: 'Birthdate(YYMMDD): '
+            }
+        ]).then(callback);
+    }
+};
 
 scheduleCrawlers[0] = function uOttawaScheduleCrawler(gAuth) {
 	console.log("GRABBING THE FORM ID");
@@ -358,6 +403,5 @@ scheduleCrawlers[0] = function uOttawaScheduleCrawler(gAuth) {
 	};
 }
 
-scheduleCrawlers[1] = function polyScheduleCrawler() {
-    console.log("GRABBING THE FORM ID");
-}
+
+
