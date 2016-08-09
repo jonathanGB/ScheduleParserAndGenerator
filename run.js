@@ -70,22 +70,55 @@ scheduleCrawlers[1] = function polyScheduleCrawler() {
         }, function (err, res, body) {
             if (err) throw new Error(err);
 
+            var $ = cheerio.load(body);
+            var serializedForm = $('form').serializeArray();
+            var formatedForm = [];
+
+            var semesters = parseAvailableSemesters(body);
+            var selectedSemester = askSemesterSelection(semesters);
+
+            serializedForm.forEach( function (elem) {
+                formatedForm[elem.name] = elem.value;
+            });
+            formatedForm['trimestre'] = selectedSemester;
+
             request({
                 method: 'post',
                 url: 'https://dossieretudiant.polymtl.ca/WebEtudiant7/PresentationHorairePersServlet',
                 jar: true,
-                form: {
-                    matricule: '1733229',
-                    trimestreProp: '20162',
-                    trimestreModif: '20162',
-                    nbreProg: '1'
-                }
+                form: formatedForm
             }, function (err, res, body) {
                 if (err) throw new Error(err);
-                console.log(body);
+                // TODO: parse body here.
+
             });
         });
     });
+
+    function askSemesterSelection(semesters) {
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'semester',
+                message: 'Select one of the available semesters:',
+                choices: semesters
+            }
+        ]).then(function (answer) {
+            return answer.semester;
+        });
+    }
+
+
+    function parseAvailableSemesters(body) {
+        var $  = cheerio.load(body);
+        var selects = $('[name=selTrimHorPers]').children();
+        var semesters = [];
+
+        selects.each(function(i, elem) {
+            semesters[i] = elem.attribs.value;
+        });
+        return semesters;
+    }
 
     function askPolyCredentials(callback) {
         inquirer.prompt([
