@@ -4,7 +4,7 @@
 
 #### Works on all platforms (Windows, Mac, Linux)!
 
-#### Currently porting the app as a webapp (see branch `hyperdev`). In the meantime, use the CLI app!
+#### Currently porting the app as a webapp ([see here](https://github.com/jonathanGB/ScheduleGeneratorWebApp)). In the  meantime, use the CLI app!
 
 ### Steps
 1. Install [node.js](https://nodejs.org/) - at least v4.4.4
